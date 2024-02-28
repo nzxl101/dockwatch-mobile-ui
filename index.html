@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Dockwatch Containers</title>
+        <meta name="description" content="Better visualization of running containers for Dockwatch!" />
+        <meta name="keywords" content="dockwatch" />
+        <meta name="robots" content="noindex, nofollow" />
+        <script defer src="https://use.fontawesome.com/releases/v5.15.4/js/all.js" integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
+        <link href="https://fonts.googleapis.com/css?family=Major Mono Display" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css?family=Rubik" rel="stylesheet" />
+        <style>
+            :root {
+                --text: #cccccc;
+                --background: #181818;
+                --primary: #a50000;
+                --secondary: #690000;
+                --accent: #ff0000;
+                --linearPrimarySecondary: linear-gradient(#a50000, #690000);
+                --linearPrimaryAccent: linear-gradient(#a50000, #ff0000);
+                --linearSecondaryAccent: linear-gradient(#690000, #ff0000);
+                --radialPrimarySecondary: radial-gradient(#a50000, #690000);
+                --radialPrimaryAccent: radial-gradient(#a50000, #ff0000);
+                --radialSecondaryAccent: radial-gradient(#690000, #ff0000);
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+
+            @keyframes rotate {
+                from {
+                    transform: translate(-50%, -50%) rotate(0deg);
+                }
+                to {
+                    transform: translate(-50%, -50%) rotate(360deg);
+                }
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+
+                font-family: "Rubik";
+                font-weight: 400;
+                color: var(--text);
+
+                background-color: var(--background);
+            }
+
+            html {
+                font-size: 100%;
+            }
+
+            h1 {
+                font-size: 3.053rem; /* 48.8px */
+                font-family: "Major Mono Display";
+                font-weight: 700;
+                background: var(--radialSecondaryAccent);
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            h2 {
+                font-size: 1.25rem; /* 20px */
+            }
+
+            small {
+                font-size: 0.8rem; /* 12.8px */
+            }
+
+            span {
+                color: var(--accent);
+            }
+
+            .heading {
+                padding: 10px;
+                text-align: left;
+            }
+
+            .heading h2 {
+                padding: 5px;
+                margin-top: -30px;
+            }
+
+            #nextRefresh {
+                display: inline;
+                box-sizing: border-box;
+            }
+
+            #refreshCount {
+                width: 25px;
+                display: inline-block;
+                text-align: center;
+            }
+
+            .content {
+                padding: 10px;
+            }
+
+            #grid {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            .grid-container {
+                width: 150px;
+                height: 150px;
+                margin: 10px;
+                padding: 10px;
+                box-sizing: border-box;
+                border: 1px solid var(--accent);
+                border-radius: 12px;
+                text-align: center;
+                background-image: linear-gradient(48deg, var(--secondary) 25%, var(--accent));
+                opacity: 0;
+                cursor: pointer;
+            }
+
+            .info .app {
+                position: absolute;
+                color: var(--text);
+                font-size: 1rem;
+                top: 15%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                margin: 0;
+                white-space: nowrap;
+            }
+
+            .info .logo img {
+                position: absolute;
+                width: 48px;
+                height: 48px;
+                object-fit: contain;
+                top: 45%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                margin: 0;
+            }
+
+            .info .image {
+                position: absolute;
+                color: var(--text);
+                font-size: 0.75rem;
+                top: 75%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                margin: 0;
+                white-space: nowrap;
+            }
+
+            .info .health {
+                position: absolute;
+                color: var(--text);
+                font-size: 0.8rem;
+                top: 90%;
+                left: 90%;
+                transform: translate(-50%, -50%);
+                margin: 0;
+            }
+
+            .info .health svg {
+                position: absolute;
+                animation: rotate 2s linear infinite;
+                cursor: pointer;
+            }
+
+            .info {
+                position: absolute;
+                background-color: #00000056;
+                width: 150px;
+                height: 150px;
+                border-radius: 12px;
+                margin: -11px;
+                padding: 0;
+            }
+
+            .fadeIn {
+                animation: fadeIn 1s ease forwards;
+                opacity: 0;
+            }
+
+            .red {
+                color: #ff4e4e;
+            }
+
+            .green {
+                color: #4eff4e;
+            }
+
+            .yellow {
+                color: #ffff4e;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="content">
+            <div class="heading">
+                <h1>DOCKWATCH</h1>
+                <h2>
+                    Visualization of
+                    <span>currently</span>
+                    running containers
+                    <div id="message"></div>
+                </h2>
+            </div>
+            <div id="grid"></div>
+        </div>
+        <script type="text/javascript">
+            var containers;
+            var mapped = {};
+
+            var timer;
+            var time = 30;
+
+            window.onload = async () => {
+                setInterval(() => {
+                    containers = refreshContainers();
+                }, 30e3);
+                containers = refreshContainers();
+            };
+
+            function openModal(id) {
+                console.log(id);
+            }
+
+            async function refreshContainers() {
+                document.getElementById("message").innerHTML = `Refreshing..`;
+                var start = window.performance.now();
+                var res = await (await fetch("/refresh")).json();
+                var end = window.performance.now();
+
+                var timerReq = (end - start) / 1000;
+
+                console.log("Refreshing containers:", `${timerReq}s`);
+
+                clearInterval(timer);
+                time = 30 - Math.trunc(timerReq);
+
+                document.getElementById("message").innerHTML = `Next refresh in
+                        <p id="nextRefresh">
+                            <span id="refreshCount">${time}</span>
+                            seconds
+                        </p>`;
+
+                timer = setInterval(() => {
+                    time--;
+                    document.getElementById("nextRefresh").innerHTML = `<span id="refreshCount">${time}</span> second${time == 1 ? "" : "s"}`;
+                    if (time == 0) {
+                        clearInterval(timer);
+                    }
+                }, 1e3);
+
+                var gridItems = document.getElementById("grid");
+
+                for (var k = 0; k < res.containers.length; k++) {
+                    var found = false;
+                    var done = false;
+
+                    for (var i = 0; i < gridItems.childElementCount; i++) {
+                        var id = gridItems.children[i].getAttribute("id");
+
+                        if (id == res.containers[k].id) {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        gridItems.innerHTML += `
+                            <div id="${res.containers[k].id}" onclick="openModal('${res.containers[k].id}')" class="grid-container">
+                                <div class="info">
+                                    <p class="app">${res.containers[k].name}</p>
+                                    <div class="logo">
+                                        <img src="${res.containers[k].info.icon}" />
+                                    </div>
+                                    <div class="health" data-tooltip="This is a tooltip">
+                                        ${res.containers[k].info.updateState !== "Outdated" ? (res.containers[k].info.health == "Healthy" ? '<i class="fas fa-circle green"></i>' : '<i class="fas fa-circle red"></i>') : '<i class="fas fa-sync-alt yellow"></i>'}
+                                    </div>
+                                    <p class="image">${res.containers[k].info.image}</p>
+                                </div>
+                            </div>`;
+                        document.getElementById(`${res.containers[k].id}`).classList.add("fadeIn");
+                    }
+                }
+
+                console.log(`Returned ${res.containers.length} containers`);
+                return res.containers;
+            }
+        </script>
+    </body>
+</html>
