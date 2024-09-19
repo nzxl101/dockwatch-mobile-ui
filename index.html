@@ -232,8 +232,16 @@
                 containers = refreshContainers();
             };
 
-            function openModal(id) {
-                console.log(id);
+            function shortenString(str) {
+                let length = str.length;
+                let shortenLength = Math.floor(length / 2);
+
+                let start = Math.floor((length - shortenLength) / 2);
+                let end = start + shortenLength;
+
+                let shorten = `${str.substring(0, start)}...${str.substring(end, length)}`;
+
+                return shorten;
             }
 
             async function refreshContainers() {
@@ -280,16 +288,16 @@
 
                     if (!found) {
                         gridItems.innerHTML += `
-                            <div id="${res.containers[k].id}" onclick="openModal('${res.containers[k].id}')" class="grid-container">
+                            <div id="${res.containers[k].id}" class="grid-container">
                                 <div class="info">
                                     <p class="app">${res.containers[k].name}</p>
                                     <div class="logo">
-                                        <img src="${res.containers[k].info.icon}" />
+                                        <img src="https://raw.githubusercontent.com/Notifiarr/images/main/icons/${res.containers[k].name}.png" />
                                     </div>
-                                    <div class="health" data-tooltip="This is a tooltip">
-                                        ${res.containers[k].info.updateState !== "Outdated" ? (res.containers[k].info.health == "Healthy" ? '<i class="fas fa-circle green"></i>' : '<i class="fas fa-circle red"></i>') : '<i class="fas fa-sync-alt yellow"></i>'}
+                                    <div class="health">
+                                        ${res.containers[k].dockwatch.pull !== "Outdated" ? (res.containers[k].health == "Healthy" ? '<i class="fas fa-circle green"></i>' : '<i class="fas fa-circle red"></i>') : '<i class="fas fa-sync-alt yellow"></i>'}
                                     </div>
-                                    <p class="image">${res.containers[k].info.image}</p>
+                                    <p class="image">${shortenString(res.containers[k].image)}</p>
                                 </div>
                             </div>`;
                         document.getElementById(`${res.containers[k].id}`).classList.add("fadeIn");
